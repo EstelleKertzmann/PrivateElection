@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Round Private Election System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .bg-animation::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.1) 2px,
+                rgba(255,255,255,0.1) 4px
+            );
+            animation: drift 20s linear infinite;
+        }
+
+        @keyframes drift {
+            0% { transform: translateX(-50%) translateY(-50%); }
+            100% { transform: translateX(-48%) translateY(-48%); }
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 1rem 0;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 2rem;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+        }
+
+        .brand-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .network-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #34d399;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        .election-dashboard {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Voting Panel */
+        .voting-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .panel-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .election-info {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 1px solid #0ea5e9;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #0ea5e9;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-voting {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .status-reveal {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .status-waiting {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        /* Candidates Section */
+        .candidates-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .candidates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .candidate-card {
+            background: linear-gradient(135deg, #fafafa, #f5f5f5);
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .candidate-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 0;
+        }
+
+        .candidate-card:hover::before,
+        .candidate-card.selected::before {
+            opacity: 0.1;
+        }
+
+        .candidate-card:hover,
+        .candidate-card.selected {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+        }
+
+        .candidate-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .candidate-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .candidate-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+
+        .candidate-id {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .vote-button {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vote-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: all 0.5s ease;
+        }
+
+        .vote-button:hover::before {
+            left: 100%;
+        }
+
+        .vote-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .vote-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Status Panel */
+        .status-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: fit-content;
+        }
+
+        .wallet-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .wallet-button {
+            width: 100%;
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .wallet-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(31, 41, 55, 0.3);
+        }
+
+        .wallet-button.connected {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .time-display {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .current-time {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .time-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .time-zone {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        .hour-status {
+            text-align: center;
+            padding: 0.75rem;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .hour-odd {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .hour-even {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .countdown {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+
+        /* Results Section */
+        .results-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 2rem;
+        }
+
+        .winner-announcement {
+            text-align: center;
+            background: linear-gradient(135deg, #fef3c7, #fbbf24);
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .winner-crown {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .winner-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #92400e;
+            margin-bottom: 0.5rem;
+        }
+
+        .winner-votes {
+            font-size: 1rem;
+            color: #b45309;
+        }
+
+        /* Control Buttons */
+        .control-section {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .control-button {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .reveal-button {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .control-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Loading States */
+        .loading {
+            position: relative;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            border-left: 4px solid #10b981;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 400px;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            border-left-color: #ef4444;
+        }
+
+        .notification.warning {
+            border-left-color: #f59e0b;
+        }
+
+        /* Error message */
+        .error-message {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            border: 1px solid #f87171;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .error-message h3 {
+            color: #dc2626;
+            margin-bottom: 0.5rem;
+        }
+
+        .error-message p {
+            color: #991b1b;
+            font-size: 0.9rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .election-dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .nav {
+                padding: 0 1rem;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .candidates-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <nav class="nav">
+                <div class="logo-section">
+                    <img src="./assets/logozama.png" alt="Zama" class="logo">
+                    <div class="brand-text">Multi-Round Private Elections</div>
+                </div>
+                <div class="network-status">
+                    <div class="status-dot"></div>
+                    <span>Sepolia Testnet</span>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="loadingMessage" class="error-message" style="display: none;">
+                <h3>Loading Libraries...</h3>
+                <p>Please wait while we load the required blockchain libraries.</p>
+            </div>
+
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <h3>Connection Error</h3>
+                <p>Failed to load required libraries. Please check your internet connection and refresh the page.</p>
+                <button onclick="location.reload()" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 5px; cursor: pointer;">Refresh Page</button>
+            </div>
+
+            <div id="mainContent" style="display: none;">
+                <div class="election-dashboard">
+                    <!-- Voting Panel -->
+                    <div class="voting-panel">
+                        <div class="panel-header">
+                            <div class="panel-icon">
+                                <i class="fas fa-vote-yea"></i>
+                            </div>
+                            <div>
+                                <div class="panel-title">Cast Your Private Vote</div>
+                            </div>
+                        </div>
+
+                        <!-- Election Info -->
+                        <div class="election-info">
+                            <div class="info-row">
+                                <span class="info-label">Election Round</span>
+                                <span class="info-value" id="currentRound">#1</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Total Voters</span>
+                                <span class="info-value" id="totalVoters">0</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Status</span>
+                                <span class="status-badge" id="electionStatus">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Waiting...</span>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Your Vote</span>
+                                <span class="info-value" id="userVoteStatus">Not cast</span>
+                            </div>
+                        </div>
+
+                        <!-- Candidates -->
+                        <div class="candidates-section">
+                            <div class="section-title">
+                                <i class="fas fa-users"></i>
+                                Select Candidate
+                            </div>
+                            <div class="candidates-grid" id="candidatesGrid">
+                                <!-- Candidates will be loaded here -->
+                            </div>
+                            <button class="vote-button" id="voteButton" disabled>
+                                <i class="fas fa-vote-yea"></i>
+                                <span>Cast Vote</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Status Panel -->
+                    <div class="status-panel">
+                        <!-- Wallet Section -->
+                        <div class="wallet-section">
+                            <div class="section-title">
+                                <i class="fas fa-wallet"></i>
+                                Wallet Connection
+                            </div>
+                            <button class="wallet-button" id="walletButton">
+                                <i class="fas fa-plug"></i>
+                                <span>Connect Wallet</span>
+                            </button>
+                        </div>
+
+                        <!-- Time Display -->
+                        <div class="time-display">
+                            <div class="current-time">
+                                <div class="time-value" id="currentTime">--:--:--</div>
+                                <div class="time-zone">UTC+3</div>
+                            </div>
+                            <div class="hour-status" id="hourStatus">
+                                <span>Calculating...</span>
+                            </div>
+                            <div class="countdown" id="countdown">
+                                Next phase in: <span id="timeUntilNext">--:--</span>
+                            </div>
+                        </div>
+
+                        <!-- Control Buttons -->
+                        <div class="control-section">
+                            <button class="control-button start-button" id="startButton" disabled>
+                                <i class="fas fa-play"></i>
+                                Start Round
+                            </button>
+                            <button class="control-button reveal-button" id="revealButton" disabled>
+                                <i class="fas fa-eye"></i>
+                                Decrypt & Reveal
+                            </button>
+                        </div>
+
+                        <!-- FHE Features -->
+                        <div class="election-info" style="margin-top: 1.5rem;">
+                            <div class="section-title" style="margin-bottom: 1rem;">
+                                <i class="fas fa-shield-alt"></i>
+                                Privacy Features
+                            </div>
+                            <div class="feature-list" style="font-size: 0.875rem; color: #4b5563; line-height: 1.6;">
+                                <div style="margin-bottom: 0.5rem;">🔐 <strong>Fully Homomorphic Encryption</strong> - Votes remain encrypted during counting</div>
+                                <div style="margin-bottom: 0.5rem;">⏰ <strong>Time-Based Phases</strong> - Voting (odd hours) & Reveal (even hours)</div>
+                                <div style="margin-bottom: 0.5rem;">🗳️ <strong>Multi-Round System</strong> - Supports consecutive election rounds</div>
+                                <div>🔍 <strong>Verifiable Results</strong> - All transactions visible on Sepolia testnet</div>
+                            </div>
+                        </div>
+
+                        <!-- Contract Info -->
+                        <div class="election-info" style="margin-top: 1.5rem;">
+                            <div class="info-row">
+                                <span class="info-label">Smart Contract</span>
+                            </div>
+                            <div style="word-break: break-all; font-family: monospace; font-size: 0.75rem; color: #6b7280;">
+                                0x72786217FADf514dA3ade188F5880d49A158961D
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div class="results-section" id="resultsSection" style="display: none;">
+                    <div class="panel-header">
+                        <div class="panel-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <div class="panel-title">Decrypted Results</div>
+                    </div>
+                    
+                    <div class="winner-announcement" id="winnerSection">
+                        <div class="winner-crown">👑</div>
+                        <div class="winner-name" id="winnerName">-</div>
+                        <div class="winner-votes" id="winnerVotes">- votes received</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Global variables
+        let provider, signer, contract, account;
+        let selectedCandidateId = null;
+        let electionData = {};
+        let candidates = [];
+        let ethersLoaded = false;
+
+        // Contract configuration
+        const CONTRACT_ADDRESS = "0x72786217FADf514dA3ade188F5880d49A158961D";
+        const CONTRACT_ABI = [
+            "function startElectionRound() external",
+            "function castVote(uint8 candidateId) external",
+            "function revealResults() external",
+            "function getCurrentElectionInfo() external view returns (uint8, bool, bool, bool, uint256, uint256, uint8, uint256)",
+            "function hasVoted(address) external view returns (bool)",
+            "function getActiveCandidates() external view returns (uint8[] memory, string[] memory)",
+            "function getElectionResults(uint8) external view returns (bool, uint8, string memory, uint256, uint256)",
+            "function isOddHour() external view returns (bool)",
+            "function isEvenHour() external view returns (bool)",
+            "function isVotingTimeActive() external view returns (bool)",
+            "function isRevealTimeActive() external view returns (bool)",
+            "event ElectionStarted(uint8 indexed round, uint256 startTime)",
+            "event VoteCast(address indexed voter, uint8 indexed round)",
+            "event ElectionEnded(uint8 indexed round, uint8 winnerId, uint256 winnerVotes)"
+        ];
+
+        // Load ethers.js using unpkg CDN
+        function loadEthersJS() {
+            document.getElementById('loadingMessage').style.display = 'block';
+            
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/ethers@6.9.2/dist/ethers.umd.min.js';
+            script.onload = function() {
+                console.log('ethers.js v6.9.2 loaded successfully from unpkg');
+                ethersLoaded = true;
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                initializeApp();
+            };
+            script.onerror = function() {
+                console.error('Failed to load ethers.js from unpkg');
+                document.getElementById('loadingMessage').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+            };
+            document.head.appendChild(script);
+        }
+
+        // Initialize the app
+        function initializeApp() {
+            if (!ethersLoaded || typeof ethers === 'undefined') {
+                console.error('Ethers.js not loaded properly');
+                return;
+            }
+
+            console.log('App initializing...');
+            
+            // Start time display updates
+            updateTimeDisplay();
+            setInterval(updateTimeDisplay, 1000);
+            
+            // Bind event listeners
+            const walletButton = document.getElementById('walletButton');
+            const voteButton = document.getElementById('voteButton');
+            const startButton = document.getElementById('startButton');
+            const revealButton = document.getElementById('revealButton');
+            
+            if (walletButton) walletButton.addEventListener('click', connectWallet);
+            if (voteButton) voteButton.addEventListener('click', castVote);
+            if (startButton) startButton.addEventListener('click', startElection);
+            if (revealButton) revealButton.addEventListener('click', revealResults);
+            
+            console.log('App initialized successfully');
+        }
+
+        // Wallet connection
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showNotification('Please install MetaMask browser extension!', 'error');
+                    return;
+                }
+
+                showLoading(document.getElementById('walletButton'));
+                
+                const accounts = await window.ethereum.request({
+                    method: 'eth_requestAccounts'
+                });
+
+                // Check and switch to Sepolia
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (chainId !== '0xaa36a7') {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xaa36a7' }],
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0xaa36a7',
+                                    chainName: 'Sepolia Test Network',
+                                    rpcUrls: ['https://sepolia.infura.io/v3/'],
+                                    nativeCurrency: {
+                                        name: 'ETH',
+                                        symbol: 'ETH',
+                                        decimals: 18
+                                    },
+                                    blockExplorerUrls: ['https://sepolia.etherscan.io/']
+                                }]
+                            });
+                        }
+                    }
+                }
+
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                account = accounts[0];
+
+                updateWalletButton();
+                loadCandidates();
+                updateElectionStatus();
+                
+                showNotification('Wallet connected successfully! 🎉', 'success');
+
+            } catch (error) {
+                console.error('Wallet connection failed:', error);
+                let errorMsg = 'Failed to connect wallet';
+                if (error.code === 4001) {
+                    errorMsg = 'Connection rejected by user';
+                }
+                showNotification(errorMsg, 'error');
+            } finally {
+                hideLoading(document.getElementById('walletButton'));
+            }
+        }
+
+        // Load candidates
+        async function loadCandidates() {
+            try {
+                const candidatesData = await contract.getActiveCandidates();
+                candidates = candidatesData[0].map((id, index) => ({
+                    id: Number(id),
+                    name: candidatesData[1][index]
+                }));
+                
+                renderCandidates();
+            } catch (error) {
+                console.error('Failed to load candidates:', error);
+                showNotification('Failed to load candidates', 'error');
+            }
+        }
+
+        // Render candidates
+        function renderCandidates() {
+            const candidatesGrid = document.getElementById('candidatesGrid');
+            if (!candidatesGrid) return;
+            
+            candidatesGrid.innerHTML = '';
+            
+            candidates.forEach(candidate => {
+                const card = document.createElement('div');
+                card.className = 'candidate-card';
+                card.dataset.candidateId = candidate.id;
+                
+                card.innerHTML = `
+                    <div class="candidate-content">
+                        <div class="candidate-avatar">
+                            ${candidate.name.charAt(0)}
+                        </div>
+                        <div class="candidate-name">${candidate.name}</div>
+                        <div class="candidate-id">ID: ${candidate.id}</div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => selectCandidate(candidate.id));
+                candidatesGrid.appendChild(card);
+            });
+        }
+
+        // Select candidate
+        function selectCandidate(candidateId) {
+            // Remove previous selection
+            document.querySelectorAll('.candidate-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            const selectedCard = document.querySelector(`[data-candidate-id="${candidateId}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+            }
+            
+            selectedCandidateId = candidateId;
+            const voteButton = document.getElementById('voteButton');
+            if (voteButton) {
+                voteButton.disabled = false;
+                const candidateName = candidates.find(c => c.id === candidateId)?.name || 'Unknown';
+                const span = voteButton.querySelector('span');
+                if (span) span.textContent = `Vote for ${candidateName}`;
+            }
+        }
+
+        // Cast vote with FHE privacy protection
+        async function castVote() {
+            if (!contract) {
+                showNotification('Smart contract not connected. Please connect wallet first.', 'error');
+                return;
+            }
+            
+            if (!account) {
+                showNotification('Please connect your wallet first', 'warning');
+                return;
+            }
+            
+            if (!selectedCandidateId) {
+                showNotification('Please select a candidate first!', 'warning');
+                return;
+            }
+
+            try {
+                const voteButton = document.getElementById('voteButton');
+                showLoading(voteButton);
+                
+                const candidateName = candidates.find(c => c.id === selectedCandidateId)?.name || 'Unknown';
+                showNotification(`📡 Encrypting and submitting your private vote for ${candidateName}...`, 'warning');
+                
+                // Submit vote directly to smart contract (let contract handle validation)
+                const tx = await contract.castVote(selectedCandidateId);
+                
+                showNotification('⏳ Waiting for transaction confirmation...', 'warning');
+                const receipt = await tx.wait();
+                
+                showNotification(`✅ Encrypted vote cast successfully! Your private vote for ${candidateName} is secured on-chain.`, 'success');
+                
+                console.log(`
+🗳️ VOTE CAST:
+Candidate: ${candidateName} (ID: ${selectedCandidateId})
+Transaction Hash: ${receipt.hash}
+Block Number: ${receipt.blockNumber}
+Gas Used: ${receipt.gasUsed}
+                `);
+                
+                // Update UI
+                await updateElectionStatus();
+                
+                // Disable voting
+                if (voteButton) {
+                    voteButton.disabled = true;
+                    const span = voteButton.querySelector('span');
+                    if (span) span.textContent = 'Vote Cast ✓';
+                }
+                
+                const userVoteStatus = document.getElementById('userVoteStatus');
+                if (userVoteStatus) userVoteStatus.textContent = 'Vote cast ✓';
+                
+            } catch (error) {
+                console.error('Vote casting failed:', error);
+                
+                let errorMsg = 'Failed to cast vote';
+                if (error.code === 4001) {
+                    errorMsg = 'Transaction rejected by user';
+                } else if (error.message.includes('Already voted')) {
+                    errorMsg = 'You have already voted in this round';
+                } else if (error.message.includes('Voting is not active')) {
+                    errorMsg = 'Voting is not currently active. Please wait for an odd hour or start a new election.';
+                } else if (error.message.includes('Invalid candidate')) {
+                    errorMsg = 'Invalid candidate selected';
+                } else if (error.message.includes('Candidate is not active')) {
+                    errorMsg = 'Selected candidate is not active';
+                }
+                
+                showNotification(errorMsg, 'error');
+            } finally {
+                hideLoading(document.getElementById('voteButton'));
+            }
+        }
+
+        // Start election
+        async function startElection() {
+            try {
+                const startButton = document.getElementById('startButton');
+                showLoading(startButton);
+                
+                // Check if it's an odd hour (required for starting elections)
+                const isOddHour = await contract.isOddHour();
+                if (!isOddHour) {
+                    showNotification('Elections can only be started during odd hours (13:00, 15:00, 17:00, etc.)', 'warning');
+                    return;
+                }
+                
+                const tx = await contract.startElectionRound();
+                showNotification('Starting new election round... Please wait for confirmation.', 'info');
+                
+                await tx.wait();
+                showNotification('New election round started successfully! 🚀', 'success');
+                
+                await updateElectionStatus();
+                
+            } catch (error) {
+                console.error('Start election failed:', error);
+                
+                let errorMsg = 'Failed to start election';
+                if (error.message.includes('odd hours')) {
+                    errorMsg = 'Elections can only be started during odd hours (13:00, 15:00, 17:00, etc.)';
+                } else if (error.message.includes('user rejected')) {
+                    errorMsg = 'Transaction rejected by user';
+                }
+                
+                showNotification(errorMsg, 'error');
+            } finally {
+                hideLoading(document.getElementById('startButton'));
+            }
+        }
+
+        // Reveal results
+        async function revealResults() {
+            try {
+                const revealButton = document.getElementById('revealButton');
+                showLoading(revealButton);
+                
+                // Check if results reveal is currently active
+                const isRevealActive = await contract.isRevealTimeActive();
+                if (!isRevealActive) {
+                    const isEvenHour = await contract.isEvenHour();
+                    if (!isEvenHour) {
+                        showNotification('Results can only be revealed during even hours (14:00, 16:00, 18:00, etc.)', 'warning');
+                        return;
+                    } else {
+                        showNotification('No election results to reveal or already revealed.', 'warning');
+                        return;
+                    }
+                }
+                
+                const tx = await contract.revealResults();
+                showNotification('Decrypting and revealing results... Please wait for FHE decryption.', 'info');
+                
+                await tx.wait();
+                showNotification('Results decrypted and revealed! Check the winner below. 🏆', 'success');
+                
+                await updateElectionStatus();
+                
+            } catch (error) {
+                console.error('Reveal results failed:', error);
+                
+                let errorMsg = 'Failed to reveal results';
+                if (error.message.includes('even hour') || error.message.includes('reveal time')) {
+                    errorMsg = 'Results can only be revealed during even hours (14:00, 16:00, 18:00, etc.)';
+                } else if (error.message.includes('user rejected')) {
+                    errorMsg = 'Transaction rejected by user';
+                }
+                
+                showNotification(errorMsg, 'error');
+            } finally {
+                hideLoading(document.getElementById('revealButton'));
+            }
+        }
+
+        // Update election status
+        async function updateElectionStatus() {
+            if (!contract) return;
+            
+            try {
+                // Get election info
+                const info = await contract.getCurrentElectionInfo();
+                electionData = {
+                    round: Number(info[0]),
+                    isActive: info[1],
+                    votingEnded: info[2],
+                    resultsRevealed: info[3],
+                    startTime: Number(info[4]),
+                    totalVoters: Number(info[5]),
+                    winnerCandidateId: Number(info[6]),
+                    winnerVoteCount: Number(info[7])
+                };
+                
+                // Update UI
+                const currentRound = document.getElementById('currentRound');
+                const totalVoters = document.getElementById('totalVoters');
+                if (currentRound) currentRound.textContent = `#${electionData.round}`;
+                if (totalVoters) totalVoters.textContent = electionData.totalVoters;
+                
+                // Check if user voted
+                if (account) {
+                    const hasVoted = await contract.hasVoted(account);
+                    const userVoteStatus = document.getElementById('userVoteStatus');
+                    const voteButton = document.getElementById('voteButton');
+                    
+                    if (hasVoted) {
+                        if (userVoteStatus) userVoteStatus.textContent = 'Vote cast ✓';
+                        if (voteButton) {
+                            voteButton.disabled = true;
+                            const span = voteButton.querySelector('span');
+                            if (span) span.textContent = 'Vote Cast ✓';
+                        }
+                    }
+                }
+                
+                // Update status badge
+                updateStatusBadge();
+                
+                // Update button states
+                updateButtonStates();
+                
+                // Show results if available
+                if (electionData.resultsRevealed) {
+                    showResults();
+                }
+                
+            } catch (error) {
+                console.error('Failed to update election status:', error);
+            }
+        }
+
+        // Update status badge
+        function updateStatusBadge() {
+            const statusBadge = document.getElementById('electionStatus');
+            if (!statusBadge) return;
+            
+            const statusText = statusBadge.querySelector('span');
+            const statusIcon = statusBadge.querySelector('i');
+            
+            statusBadge.className = 'status-badge';
+            
+            if (electionData.isActive && !electionData.votingEnded) {
+                statusBadge.classList.add('status-voting');
+                if (statusIcon) statusIcon.className = 'fas fa-vote-yea';
+                if (statusText) statusText.textContent = 'Voting Active';
+            } else if (electionData.isActive && !electionData.resultsRevealed) {
+                statusBadge.classList.add('status-reveal');
+                if (statusIcon) statusIcon.className = 'fas fa-eye';
+                if (statusText) statusText.textContent = 'Awaiting Results';
+            } else if (electionData.resultsRevealed) {
+                statusBadge.classList.add('status-reveal');
+                if (statusIcon) statusIcon.className = 'fas fa-trophy';
+                if (statusText) statusText.textContent = 'Results Available';
+            } else {
+                statusBadge.classList.add('status-waiting');
+                if (statusIcon) statusIcon.className = 'fas fa-clock';
+                if (statusText) statusText.textContent = 'Waiting';
+            }
+        }
+
+        // Update button states
+        async function updateButtonStates() {
+            if (!contract) return;
+            
+            try {
+                const isOddHour = await contract.isOddHour();
+                const isEvenHour = await contract.isEvenHour();
+                const isVotingActive = await contract.isVotingTimeActive();
+                const isRevealActive = await contract.isRevealTimeActive();
+                
+                const startButton = document.getElementById('startButton');
+                const revealButton = document.getElementById('revealButton');
+                const voteButton = document.getElementById('voteButton');
+                
+                // Start button
+                if (startButton) {
+                    startButton.disabled = !isOddHour || (electionData.isActive && !electionData.resultsRevealed);
+                }
+                
+                // Reveal button  
+                if (revealButton) {
+                    revealButton.disabled = !isRevealActive;
+                }
+                
+                // Vote button
+                if (voteButton) {
+                    const userVoteStatus = document.getElementById('userVoteStatus');
+                    if (isVotingActive && electionData.isActive && !electionData.votingEnded) {
+                        if (!userVoteStatus || userVoteStatus.textContent !== 'Vote cast ✓') {
+                            voteButton.disabled = selectedCandidateId === null;
+                        }
+                    } else {
+                        voteButton.disabled = true;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Failed to update button states:', error);
+            }
+        }
+
+        // Show results
+        async function showResults() {
+            try {
+                const resultsData = await contract.getElectionResults(electionData.round);
+                
+                if (resultsData[0]) { // Results revealed
+                    const winnerName = resultsData[2];
+                    const winnerVotes = Number(resultsData[3]);
+                    
+                    const winnerNameEl = document.getElementById('winnerName');
+                    const winnerVotesEl = document.getElementById('winnerVotes');
+                    const resultsSection = document.getElementById('resultsSection');
+                    
+                    if (winnerNameEl) winnerNameEl.textContent = winnerName;
+                    if (winnerVotesEl) winnerVotesEl.textContent = `${winnerVotes} votes received`;
+                    if (resultsSection) resultsSection.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Failed to load results:', error);
+            }
+        }
+
+        // Update wallet button
+        function updateWalletButton() {
+            const walletButton = document.getElementById('walletButton');
+            if (walletButton && account) {
+                walletButton.classList.add('connected');
+                const icon = walletButton.querySelector('i');
+                const span = walletButton.querySelector('span');
+                if (icon) icon.className = 'fas fa-check-circle';
+                if (span) span.textContent = `${account.slice(0, 6)}...${account.slice(-4)}`;
+            }
+        }
+
+        // Time display
+        function updateTimeDisplay() {
+            const now = new Date();
+            const utc3 = new Date(now.getTime() + (3 * 60 * 60 * 1000));
+            
+            // Update current time
+            const currentTime = document.getElementById('currentTime');
+            if (currentTime) {
+                currentTime.textContent = utc3.toLocaleTimeString();
+            }
+            
+            // Update hour status
+            const currentHour = utc3.getHours();
+            const isOdd = currentHour % 2 === 1;
+            const hourStatus = document.getElementById('hourStatus');
+            
+            if (hourStatus) {
+                hourStatus.className = isOdd ? 'hour-status hour-odd' : 'hour-status hour-even';
+                hourStatus.textContent = isOdd ? 
+                    '🗳️ ODD HOUR - Voting Time!' : 
+                    '📊 EVEN HOUR - Results Time!';
+            }
+            
+            // Update countdown
+            const nextHour = new Date(utc3);
+            nextHour.setHours(currentHour + 1, 0, 0, 0);
+            const diff = nextHour.getTime() - utc3.getTime();
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            const timeUntilNext = document.getElementById('timeUntilNext');
+            if (timeUntilNext) {
+                timeUntilNext.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // Utility functions
+        function showLoading(button) {
+            if (button) {
+                button.classList.add('loading');
+                button.disabled = true;
+            }
+        }
+
+        function hideLoading(button) {
+            if (button) {
+                button.classList.remove('loading');
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : 
+                                      type === 'error' ? 'exclamation-circle' : 
+                                      type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                    <span style="white-space: pre-line;">${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Show notification
+            setTimeout(() => notification.classList.add('show'), 100);
+            
+            // Hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Auto-refresh election status
+        setInterval(() => {
+            if (contract) {
+                updateElectionStatus();
+            }
+        }, 10000);
+
+        // Start loading ethers.js when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadEthersJS);
+        } else {
+            loadEthersJS();
+        }
+    </script>
+</body>
+</html>
